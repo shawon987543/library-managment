@@ -1,4 +1,3 @@
-
 {
   "compilerOptions": {
     "module": "nodenext",
@@ -28,6 +27,7 @@
     "test",
     "frontend",
     "src/generated/prisma",
+    "dist/generated/prisma",
     "generated",
     "prisma",
     "prisma7.config.ts",

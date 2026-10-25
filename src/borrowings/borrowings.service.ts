@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -11,8 +12,10 @@ export class BorrowingsService {
     private readonly prisma: PrismaService,
   ) {}
 
+  // Get borrowing records for the authenticated user.
   async findAll(userId: number) {
     return this.prisma.borrowing.findMany({
+      where: { userId },
       include: {
         user: {
           select: {
@@ -36,11 +39,9 @@ export class BorrowingsService {
     });
   }
 
+  // Borrow a book and set the initial due date to 14 days.
   async borrowBook(userId: number, bookId: number) {
-    if (
-      !Number.isSafeInteger(bookId) ||
-      bookId <= 0
-    ) {
+    if (!Number.isSafeInteger(bookId) || bookId <= 0) {
       throw new BadRequestException(
         'A valid book ID is required',
       );
@@ -95,16 +96,30 @@ export class BorrowingsService {
         );
       }
 
+      const borrowedAt = new Date();
+      const dueDate = new Date(borrowedAt);
+      dueDate.setDate(dueDate.getDate() + 14);
+
       return tx.borrowing.create({
         data: {
           userId,
           bookId,
+          borrowedAt,
+          dueDate,
+          renewalCount: 0,
         },
       });
     });
   }
 
+  // Return a borrowed book.
   async returnBook(id: number, userId: number) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      throw new BadRequestException(
+        'A valid borrowing ID is required',
+      );
+    }
+
     return this.prisma.$transaction(async (tx) => {
       const borrowing = await tx.borrowing.findUnique({
         where: { id },
@@ -116,7 +131,7 @@ export class BorrowingsService {
         );
       }
 
-      // Only the borrower may return this record.
+      // Only the borrower can return their own book.
       if (borrowing.userId !== userId) {
         throw new BadRequestException(
           'You can only return books borrowed by your account',
@@ -129,7 +144,7 @@ export class BorrowingsService {
         );
       }
 
-      // Claim the return only if it has not already happened.
+      // Claim the return only once.
       const result = await tx.borrowing.updateMany({
         where: {
           id,
@@ -147,14 +162,6 @@ export class BorrowingsService {
         );
       }
 
-      const book = await tx.book.findUnique({
-        where: { id: borrowing.bookId },
-      });
-
-      if (!book ){
-        throw new NotFoundException('Book not found');
-      }
-
       const bookResult = await tx.book.updateMany({
         where: {
           id: borrowing.bookId,
@@ -168,12 +175,103 @@ export class BorrowingsService {
 
       if (bookResult.count !== 1) {
         throw new BadRequestException(
-          'Available quantity has reached the total copy limit',
+          'Available quantity has reached the maximum limit',
         );
       }
 
       return {
         message: 'Book returned successfully',
+      };
+    });
+  }
+
+  // Renew a borrowed book for another 14 days.
+  // Maximum: 2 renewals per borrowing.
+  async renewBook(id: number, userId: number) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      throw new BadRequestException(
+        'A valid borrowing ID is required',
+      );
+    }
+
+    const MAX_RENEWALS = 2;
+    const RENEWAL_DAYS = 14;
+
+    return this.prisma.$transaction(async (tx) => {
+      const borrowing = await tx.borrowing.findFirst({
+        where: {
+          id,
+          userId,
+        },
+      });
+
+      if (!borrowing) {
+        throw new NotFoundException(
+          'Borrowing record not found for your account',
+        );
+      }
+
+      if (borrowing.returnedAt) {
+        throw new BadRequestException(
+          'A returned book cannot be renewed',
+        );
+      }
+
+      // Older records without a due date get a fallback date.
+      const currentDueDate =
+        borrowing.dueDate ??
+        new Date(
+          borrowing.borrowedAt.getTime() +
+            RENEWAL_DAYS * 24 * 60 * 60 * 1000,
+        );
+
+      if (currentDueDate.getTime() <= Date.now()) {
+        throw new BadRequestException(
+          'Overdue books cannot be renewed',
+        );
+      }
+
+      if (borrowing.renewalCount >= MAX_RENEWALS) {
+        throw new BadRequestException(
+          'Maximum renewal limit reached',
+        );
+      }
+
+      const newDueDate = new Date(currentDueDate);
+      newDueDate.setDate(
+        newDueDate.getDate() + RENEWAL_DAYS,
+      );
+
+      // Conditional update prevents overwriting a changed record.
+      const result = await tx.borrowing.updateMany({
+        where: {
+          id,
+          userId,
+          returnedAt: null,
+          renewalCount: borrowing.renewalCount,
+          dueDate: borrowing.dueDate,
+        },
+        data: {
+          dueDate: newDueDate,
+          renewalCount: {
+            increment: 1,
+          },
+        },
+      });
+
+      if (result.count !== 1) {
+        throw new BadRequestException(
+          'Renewal failed because the borrowing record changed. Please try again.',
+        );
+      }
+
+      return {
+        message: 'Book renewed successfully',
+        borrowingId: id,
+        dueDate: newDueDate,
+        renewalCount: borrowing.renewalCount + 1,
+        renewalsRemaining:
+          MAX_RENEWALS - borrowing.renewalCount - 1,
       };
     });
   }

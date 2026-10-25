@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import api from '../../lib/api';
+import Link from 'next/link';
 
 type Role = 'USER' | 'ADMIN';
 
@@ -14,6 +15,7 @@ type Book = {
   description: string | null;
   available: boolean;
   isActive: boolean;
+  genre: string;
 };
 
 type TokenPayload = {
@@ -25,6 +27,7 @@ type BookForm = {
   title: string;
   autor: string;
   isbn: string;
+  genre: string;
   description: string;
 };
 
@@ -32,6 +35,7 @@ const emptyForm: BookForm = {
   title: '',
   autor: '',
   isbn: '',
+  genre: 'Other',
   description: '',
 };
 
@@ -86,11 +90,8 @@ export default function AdminPage() {
           atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')),
         ) as TokenPayload;
 
-        if (
-          typeof payload.exp !== 'number' ||
-          payload.exp * 1000 <= Date.now()
-        ) {
-          handleUnauthorized();
+        if (payload.role !== 'ADMIN'){
+          router.replace('/');
           return;
         }
 
@@ -143,6 +144,7 @@ export default function AdminPage() {
       title: form.title.trim(),
       autor: form.autor.trim(),
       isbn: form.isbn.trim(),
+      genre: form.genre,
       description: form.description.trim(),
     };
 
@@ -199,6 +201,7 @@ export default function AdminPage() {
       title: book.title,
       autor: book.autor,
       isbn: book.isbn,
+      genre: book.genre || 'Other',
       description: book.description ?? '',
     });
 
@@ -415,7 +418,14 @@ export default function AdminPage() {
             >
               Main dashboard
             </button>
-
+          <div className= "flex flex-wrap items-center gap-3">
+            <Link
+            href= "/dashboard"
+            className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
+            >
+              Dashboard
+            </Link>
+          </div>
             <button
               type="button"
               onClick={logout}
@@ -535,6 +545,35 @@ export default function AdminPage() {
                 className={inputClass}
               />
             </div>
+                <div>
+                  <label
+                  htmlFor= "genre"
+                  className="mb-2 block font-semibold text-gray-800"
+                  >
+                    Book genre
+                  </label>
+
+                  <select
+                  id="genre"
+                  value={form.genre}
+                  onChange={(e) =>
+                    setForm({ ...form, genre: e.target.value })
+                  }
+                  className={inputClass}
+                  >
+                    <option value="Other">Other</option>
+                    <option value="Programming">Programming</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Science">Science</option>
+                    <option value="Fiction">Fiction</option>
+                    <option value="Fantasy">Fantasy</option>
+                    <option value="History">Other</option>
+                    <option value="Education">Education</option>
+                    <option value="Mystery">Mystery</option>
+                    <option value="Biography">Biography</option>
+                    <option value="Business">Business</option>
+                  </select>
+                </div>
 
             <div className="md:col-span-2">
               <label
@@ -648,6 +687,9 @@ export default function AdminPage() {
                     <th className="px-4 py-3 font-semibold text-gray-700">
                       ISBN
                     </th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">
+                      Genre
+                      </th>
 
                     <th className="px-4 py-3 font-semibold text-gray-700">
                       Description
@@ -683,6 +725,12 @@ export default function AdminPage() {
 
                       <td className="px-4 py-4 text-gray-700">
                         {book.isbn}
+                      </td>
+
+                      <td className="px-4 py-4">
+                        <span className="inline-flex rounded-b-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
+                          {book.genre || 'Other'}
+                        </span>
                       </td>
 
                       <td className="max-w-xs px-4 py-4">

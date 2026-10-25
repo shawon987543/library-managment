@@ -89,7 +89,7 @@ export default function BookDetailsPage({
 
         if (!cancelled) {
           setBook(response.data);
-        }
+        }''
       } catch {
         if (!cancelled) {
           setError('Could not load this book. Please try again.');

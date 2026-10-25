@@ -61,7 +61,6 @@ export class BorrowingsController {
     @Body() body: { bookId: number },
   ) {
     const userId = this.getAuthenticatedUserId(req);
-
     return this.borrowingsService.borrowBook(
       userId,
       body.bookId,
@@ -81,5 +80,14 @@ export class BorrowingsController {
   ) {
     const userId = this.getAuthenticatedUserId(req);
     return this.borrowingsService.returnBook(id, userId);
+  }
+
+  @Patch(':id/renew')
+  renewBook(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    const userId = this.getAuthenticatedUserId(req);
+    return this.borrowingsService.renewBook(id, userId);
   }
 }

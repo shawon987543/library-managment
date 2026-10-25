@@ -20,12 +20,13 @@ model Book {
   available       Boolean     @default(true)
   createdAt       DateTime    @default(now())
   borrowings      Borrowing[]
-  favorites Favorite[]
+  favorites       Favorite[]
   isActive        Boolean     @default(true)
   description     String?     @db.Text
   totalCopies     Int         @default(5)
   availableCopies Int         @default(5)
   reviews         Review[]
+  genre           String @default("Other")
 }
 
 model User {
@@ -76,6 +77,8 @@ model Borrowing {
   bookId     Int
   borrowedAt DateTime  @default(now())
   returnedAt DateTime?
+  dueDate   DateTime?
+  renewalCount Int    @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Restrict)
   book Book @relation(fields: [bookId], references: [id], onDelete: Restrict)

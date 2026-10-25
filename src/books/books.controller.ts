@@ -1,65 +1,88 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+
 import { BooksService } from './books.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { JWTAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('books')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JWTAuthGuard)
 export class BooksController {
-  constructor(private readonly booksService: BooksService) {}
-  
-@Patch(':id/status')
-@UseGuards(RolesGuard)
-@Roles('ADMIN')
-setActive(
-  @Param('id', ParseIntPipe) id: number,
-  @Body() body: { isActive: boolean },
-) {
-  return this.booksService.setActive(id, body.isActive);
-}
+  constructor(
+    private readonly booksService: BooksService,
+  ) {}
+
+  // Get all books.
   @Get()
   findAll() {
     return this.booksService.findAll();
   }
 
+  // Get one book with borrowing history and reviews.
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.booksService.findOne(id);
   }
 
+  // Create a book.
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN')
   create(
-    @Body() body: {
+    @Body()
+    body: {
       title: string;
       autor: string;
       isbn: string;
+      genre?: string;
+      description?: string | null;
     },
   ) {
     return this.booksService.create(body);
   }
 
-
+  // Update book details.
   @Put(':id')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN')
   update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: {
+    @Body()
+    body: {
       title?: string;
       autor?: string;
       isbn?: string;
+      genre?: string;
+      description?: string | null;
     },
   ) {
     return this.booksService.update(id, body);
   }
 
+  // Activate or deactivate a book.
+  @Patch(':id/status')
+  setActive(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { isActive: boolean },
+  ) {
+    return this.booksService.setActive(
+      id,
+      body.isActive,
+    );
+  }
+
+  // Delete a book if it has no borrowing history.
   @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles('ADMIN')
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.booksService.remove(id);
   }
 }

@@ -1,4 +1,6 @@
+
 'use client';
+
 import { useCallback, useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import api from '../lib/api';
@@ -18,6 +20,8 @@ interface Borrowing {
   bookId: number;
   borrowedAt: string;
   returnedAt: string | null;
+  dueDate: string | null;
+  renewalCount: number;
   user: {
     id: number;
     name: string;
@@ -35,6 +39,25 @@ interface TokenPayload {
   sub?: number | string;
   id?: number | string;
   userId?: number | string;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string | string[];
+    };
+  };
+}
+
+function getErrorMessage(
+  err: unknown,
+  fallback: string,
+): string {
+  const message = (err as ApiError)?.response?.data?.message;
+
+  return Array.isArray(message)
+    ? message.join(', ')
+    : message || fallback;
 }
 
 function getLoggedInUserId(): number | null {
@@ -64,12 +87,27 @@ function getLoggedInUserId(): number | null {
   }
 }
 
+function formatDate(value: string | null | undefined): string {
+  if (!value) return 'Not set';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return 'Not set';
+
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export default function BorrowReturnSection() {
   const [records, setRecords] = useState<Borrowing[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
   const [bookId, setBookId] = useState('');
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -79,11 +117,10 @@ export default function BorrowReturnSection() {
 
   const fetchRecords = useCallback(async () => {
     try {
-      // GET /borrowings should return all borrowing records.
       const response = await api.get<Borrowing[]>('/borrowings');
       setRecords(response.data);
-    } catch {
-      setError('Could not load borrowing history.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Could not load borrowing history.'));
     }
   }, []);
 
@@ -91,8 +128,8 @@ export default function BorrowReturnSection() {
     try {
       const response = await api.get<Book[]>('/books');
       setBooks(response.data);
-    } catch {
-      setError('Could not load the book collection.');
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Could not load the book collection.'));
     }
   }, []);
 
@@ -123,57 +160,52 @@ export default function BorrowReturnSection() {
 
       await Promise.all([fetchRecords(), fetchBooks()]);
     } catch (err: unknown) {
-      const message =
-        typeof err === 'object' && err !== null && 'response' in err
-          ? (
-              err as {
-                response?: {
-                  data?: { message?: string | string[] };
-                };
-              }
-            ).response?.data?.message
-          : undefined;
-
-      setError(
-        Array.isArray(message)
-          ? message.join(', ')
-          : message || 'Could not borrow this book.',
-      );
+      setError(getErrorMessage(err, 'Could not borrow this book.'));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleReturn(id: number) {
-    setLoading(true);
+    setProcessingId(id);
     setError('');
     setSuccess('');
 
     try {
-      // The backend must also check that this record belongs to the user.
       await api.patch(`/borrowings/${id}/return`);
 
       setSuccess('Book returned successfully!');
       await Promise.all([fetchRecords(), fetchBooks()]);
     } catch (err: unknown) {
-      const message =
-        typeof err === 'object' && err !== null && 'response' in err
-          ? (
-              err as {
-                response?: {
-                  data?: { message?: string | string[] };
-                };
-              }
-            ).response?.data?.message
-          : undefined;
-
-      setError(
-        Array.isArray(message)
-          ? message.join(', ')
-          : message || 'Could not return this book.',
-      );
+      setError(getErrorMessage(err, 'Could not return this book.'));
     } finally {
-      setLoading(false);
+      setProcessingId(null);
+    }
+  }
+
+  async function handleRenew(id: number) {
+    setProcessingId(id);
+    setError('');
+    setSuccess('');
+
+    try {
+      const response = await api.patch<{
+        message?: string;
+        dueDate?: string;
+        renewalCount?: number;
+        renewalsRemaining?: number;
+      }>(`/borrowings/${id}/renew`);
+
+      setSuccess(
+        response.data.message ||
+          'Book renewed successfully! The due date has been extended.',
+      );
+
+      await fetchRecords();
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Could not renew this book.'));
+    } finally {
+      setProcessingId(null);
     }
   }
 
@@ -185,9 +217,10 @@ export default function BorrowReturnSection() {
     <section className="dashboard-subpanel mt-10">
       <div className="mb-6">
         <p className="dashboard-eyebrow">Library activity</p>
-        <h2 className="text-xl font-bold">Borrow &amp; Return</h2>
+        <h2 className="text-xl font-bold">Borrow, Return &amp; Renew</h2>
         <p className="mt-1 text-sm text-gray-500">
-          Borrow available books and view borrowing history for all users.
+          Manage your borrowed books and review borrowing history.
+          You can renew an eligible book up to two times.
         </p>
       </div>
 
@@ -250,35 +283,36 @@ export default function BorrowReturnSection() {
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-lg font-bold">All Borrowing History</h3>
+          <h3 className="text-lg font-bold">Borrowing History</h3>
           <p className="mt-1 text-sm text-gray-500">
-            All users' records are visible. You can return only your own
-            unreturned books.
+            Return and renew actions are available only for your own eligible records.
           </p>
         </div>
 
         <button
           type="button"
-          disabled={loading}
+          disabled={loading || processingId !== null}
           onClick={() => {
             setError('');
             void Promise.all([fetchRecords(), fetchBooks()]);
           }}
-          className="dashboard-secondary-action rounded-lg border px-4 py-2 text-sm font-semibold"
+          className="dashboard-secondary-action rounded-lg border px-4 py-2 text-sm font-semibold disabled:opacity-50"
         >
           Refresh
         </button>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left text-sm">
+        <table className="w-full min-w-[1000px] text-left text-sm">
           <thead className="bg-gray-50 text-gray-600">
             <tr>
               <th className="p-3">Borrower</th>
               <th className="p-3">Book</th>
               <th className="p-3">Borrowed On</th>
+              <th className="p-3">Due Date</th>
+              <th className="p-3">Renewals</th>
               <th className="p-3">Status</th>
-              <th className="p-3">Action</th>
+              <th className="p-3">Actions</th>
             </tr>
           </thead>
 
@@ -288,8 +322,27 @@ export default function BorrowReturnSection() {
                 currentUserId !== null &&
                 Number(record.userId) === currentUserId;
 
-              const canReturn =
-                isMyRecord && record.returnedAt === null;
+              const isReturned = record.returnedAt !== null;
+              const renewals = record.renewalCount ?? 0;
+              const dueDate = record.dueDate
+                ? new Date(record.dueDate)
+                : null;
+
+              const isOverdue =
+                !isReturned &&
+                dueDate !== null &&
+                !Number.isNaN(dueDate.getTime()) &&
+                dueDate.getTime() <= Date.now();
+
+              const canReturn = isMyRecord && !isReturned;
+
+              const canRenew =
+                isMyRecord &&
+                !isReturned &&
+                !isOverdue &&
+                renewals < 2;
+
+              const isProcessing = processingId === record.id;
 
               return (
                 <tr key={record.id} className="border-b border-gray-100">
@@ -312,43 +365,100 @@ export default function BorrowReturnSection() {
                   </td>
 
                   <td className="p-3 text-gray-700">
-                    {record.borrowedAt
-                      ? new Date(record.borrowedAt).toLocaleDateString()
-                      : '—'}
+                    {formatDate(record.borrowedAt)}
                   </td>
 
                   <td className="p-3">
                     <span
-                      className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
-                        record.returnedAt
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}
+                      className={
+                        isOverdue
+                          ? 'font-semibold text-red-700'
+                          : 'text-gray-700'
+                      }
                     >
-                      {record.returnedAt ? 'Returned' : 'Borrowed'}
+                      {formatDate(record.dueDate)}
                     </span>
 
-                    {record.returnedAt && (
-                      <p className="mt-1 text-xs text-gray-500">
-                        Returned on{' '}
-                        {new Date(record.returnedAt).toLocaleDateString()}
+                    {isOverdue && (
+                      <p className="mt-1 text-xs font-semibold text-red-600">
+                        Overdue
                       </p>
                     )}
                   </td>
 
                   <td className="p-3">
-                    {canReturn ? (
-                      <button
-                        type="button"
-                        disabled={loading}
-                        onClick={() => void handleReturn(record.id)}
-                        className="rounded-lg bg-green-600 px-3 py-2 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-                      >
-                        Return
-                      </button>
+                    <span className="font-semibold text-gray-800">
+                      {renewals}/2
+                    </span>
+                    <p className="mt-1 text-xs text-gray-500">
+                      {Math.max(0, 2 - renewals)} remaining
+                    </p>
+                  </td>
+
+                  <td className="p-3">
+                    <span
+                      className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
+                        isReturned
+                          ? 'bg-green-100 text-green-800'
+                          : isOverdue
+                            ? 'bg-red-100 text-red-800'
+                            : 'bg-amber-100 text-amber-800'
+                      }`}
+                    >
+                      {isReturned
+                        ? 'Returned'
+                        : isOverdue
+                          ? 'Overdue'
+                          : 'Borrowed'}
+                    </span>
+
+                    {isReturned && (
+                      <p className="mt-1 text-xs text-gray-500">
+                        Returned {formatDate(record.returnedAt)}
+                      </p>
+                    )}
+                  </td>
+
+                  <td className="p-3">
+                    {isMyRecord && !isReturned ? (
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={
+                            isProcessing ||
+                            processingId !== null ||
+                            loading
+                          }
+                          onClick={() => void handleReturn(record.id)}
+                          className="rounded-lg bg-green-600 px-3 py-2 font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {isProcessing ? 'Processing...' : 'Return'}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            !canRenew ||
+                            isProcessing ||
+                            processingId !== null ||
+                            loading
+                          }
+                          title={
+                            isOverdue
+                              ? 'Overdue books cannot be renewed'
+                              : renewals >= 2
+                                ? 'Maximum renewals reached'
+                                : 'Extend the due date by 14 days'
+                          }
+                          onClick={() => void handleRenew(record.id)}
+                          className="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          {isProcessing ? 'Processing...' : 'Renew'}
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-gray-500">
-                        {record.returnedAt
+                        {isReturned
                           ? 'Completed'
                           : isMyRecord
                             ? 'Your book'
@@ -362,7 +472,7 @@ export default function BorrowReturnSection() {
 
             {records.length === 0 && (
               <tr>
-                <td colSpan={5} className="p-8 text-center text-gray-500">
+                <td colSpan={7} className="p-8 text-center text-gray-500">
                   No borrowing history found.
                 </td>
               </tr>

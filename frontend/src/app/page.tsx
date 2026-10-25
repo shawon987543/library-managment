@@ -11,6 +11,7 @@ interface Book {
   autor: string;
   isbn: string;
   available: boolean;
+  genre: string;
 }
 
 interface FavoriteRecord {
@@ -38,6 +39,7 @@ export default function HomePage() {
       return;
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAuthenticated(true);
   }, [router]);
 
@@ -121,6 +123,7 @@ export default function HomePage() {
 
   useEffect(() => {
     if (authenticated) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       void fetchBooks();
       void fetchFavorites();
     }
@@ -225,7 +228,12 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-
+          <Link
+          href= "/dashboard"
+          className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
+          >
+          Dashboard
+          </Link>
           <button
             type="button"
             onClick={handleLogout}
@@ -317,6 +325,9 @@ export default function HomePage() {
                       Author
                     </th>
                     <th className="px-4 py-3 font-semibold text-gray-700">
+                      Genre
+                    </th>
+                    <th className="px-4 py-3 font-semibold text-gray-700">
                       ISBN
                     </th>
                     <th className="px-4 py-3 font-semibold text-gray-700">
@@ -354,7 +365,11 @@ export default function HomePage() {
                         <td className="px-4 py-4 text-gray-700">
                           {book.autor}
                         </td>
-
+                        <td className="px-4 py-4">
+                          <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
+                            {book.genre || 'Other'}
+                            </span>
+                        </td>
                         <td className="px-4 py-4 text-gray-700">
                           {book.isbn}
                         </td>

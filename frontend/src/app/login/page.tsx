@@ -38,8 +38,9 @@ export default function LoginPage() {
         password,
       });
       const token = response.data.access_token;
+      const refreshToken = response.data.refresh_token;
 
-      if (!token) {
+      if (!token || !refreshToken) {
         setError(
           'Login succeeded, but the access token was not returned.',
         );
@@ -48,6 +49,7 @@ export default function LoginPage() {
 
       // Temporary setup for learning and development.
       sessionStorage.setItem('access_token', token);
+      sessionStorage.setItem('refresh_token', refreshToken);
       
       try {
         const payloadPart = token.split('.')[1];
@@ -70,19 +72,24 @@ export default function LoginPage() {
         console.log('Logged-in email:', payload.email);
         console.log('Logged-in role:', payload.role);
 
-        if (payload.role?.toUpperCase() === 'ADMIN') {
-            window.location.replace('/admin');
-            
+        if(payload.role?.toUpperCase() === 'ADMIN'){
+          window.location.replace('/admin');
+
         } else if(payload.role?.toUpperCase() === 'USER'){
-            window.location.replace('/');
+          window.location.replace('/');
 
         } else {
-            sessionStorage.removeItem('access_token');
-            setError('Your account role is missing or invaild. Please contact the administrator.');
+          sessionStorage.removeItem('access_token');
+          sessionStorage.removeItem('refresh_token');
+          throw new Error('Invalid user role');
+          setError(
+            'Your account role is missing or invalid. Please contact the administrator.',
+          );
         }
       } catch {
         sessionStorage.removeItem('access_token');
-        setError('Could not verify your login role. Please try again.')
+        sessionStorage.removeItem('refresh_token');
+        setError('Could not verify your login role. Please try again.');
       }
       
     } catch (err: unknown) {

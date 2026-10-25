@@ -1,5 +1,6 @@
 import {
   Injectable, ConflictException, UnauthorizedException, InternalServerErrorException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,6 +14,62 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ){
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        password: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.password) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      currentPassword,
+      user.password,
+    );
+
+    if (!passwordMatches) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if(!passwordMatches){
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    if (currentPassword === newPassword){
+      throw new BadRequestException(
+        'New password must be diffrent from current password',
+      );
+    }
+
+    const hashPassword = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashPassword,
+        refreshTokenHash: null,
+      },
+    });
+
+    return {
+      message:
+      'Password changed sucessfully. Please log in again.',
+    };
+  }
 
   async getAdmins(){
     return this.prisma.user.findMany({
@@ -61,8 +118,17 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({
-      where: { email: dto.email },
+    // Validate the request body first
+  if (!dto?.email || !dto?.password) {
+    throw new BadRequestException(
+      'Email and password are required',
+    );
+  }
+
+  const email = dto.email.trim().toLowerCase();
+
+  const user = await this.prisma.user.findUnique({
+    where: { email },
     });
 
     if (!user || !user.password) {
