@@ -49,6 +49,7 @@ export type BookMinAggregateOutputType = {
   description: string | null
   totalCopies: number | null
   availableCopies: number | null
+  genre: string | null
 }
 
 export type BookMaxAggregateOutputType = {
@@ -62,6 +63,7 @@ export type BookMaxAggregateOutputType = {
   description: string | null
   totalCopies: number | null
   availableCopies: number | null
+  genre: string | null
 }
 
 export type BookCountAggregateOutputType = {
@@ -75,6 +77,7 @@ export type BookCountAggregateOutputType = {
   description: number
   totalCopies: number
   availableCopies: number
+  genre: number
   _all: number
 }
 
@@ -102,6 +105,7 @@ export type BookMinAggregateInputType = {
   description?: true
   totalCopies?: true
   availableCopies?: true
+  genre?: true
 }
 
 export type BookMaxAggregateInputType = {
@@ -115,6 +119,7 @@ export type BookMaxAggregateInputType = {
   description?: true
   totalCopies?: true
   availableCopies?: true
+  genre?: true
 }
 
 export type BookCountAggregateInputType = {
@@ -128,6 +133,7 @@ export type BookCountAggregateInputType = {
   description?: true
   totalCopies?: true
   availableCopies?: true
+  genre?: true
   _all?: true
 }
 
@@ -228,6 +234,7 @@ export type BookGroupByOutputType = {
   description: string | null
   totalCopies: number
   availableCopies: number
+  genre: string
   _count: BookCountAggregateOutputType | null
   _avg: BookAvgAggregateOutputType | null
   _sum: BookSumAggregateOutputType | null
@@ -264,6 +271,7 @@ export type BookWhereInput = {
   description?: Prisma.StringNullableFilter<"Book"> | string | null
   totalCopies?: Prisma.IntFilter<"Book"> | number
   availableCopies?: Prisma.IntFilter<"Book"> | number
+  genre?: Prisma.StringFilter<"Book"> | string
   borrowings?: Prisma.BorrowingListRelationFilter
   favorites?: Prisma.FavoriteListRelationFilter
   reviews?: Prisma.ReviewListRelationFilter
@@ -280,6 +288,7 @@ export type BookOrderByWithRelationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   totalCopies?: Prisma.SortOrder
   availableCopies?: Prisma.SortOrder
+  genre?: Prisma.SortOrder
   borrowings?: Prisma.BorrowingOrderByRelationAggregateInput
   favorites?: Prisma.FavoriteOrderByRelationAggregateInput
   reviews?: Prisma.ReviewOrderByRelationAggregateInput
@@ -299,6 +308,7 @@ export type BookWhereUniqueInput = Prisma.AtLeast<{
   description?: Prisma.StringNullableFilter<"Book"> | string | null
   totalCopies?: Prisma.IntFilter<"Book"> | number
   availableCopies?: Prisma.IntFilter<"Book"> | number
+  genre?: Prisma.StringFilter<"Book"> | string
   borrowings?: Prisma.BorrowingListRelationFilter
   favorites?: Prisma.FavoriteListRelationFilter
   reviews?: Prisma.ReviewListRelationFilter
@@ -315,6 +325,7 @@ export type BookOrderByWithAggregationInput = {
   description?: Prisma.SortOrderInput | Prisma.SortOrder
   totalCopies?: Prisma.SortOrder
   availableCopies?: Prisma.SortOrder
+  genre?: Prisma.SortOrder
   _count?: Prisma.BookCountOrderByAggregateInput
   _avg?: Prisma.BookAvgOrderByAggregateInput
   _max?: Prisma.BookMaxOrderByAggregateInput
@@ -336,6 +347,7 @@ export type BookScalarWhereWithAggregatesInput = {
   description?: Prisma.StringNullableWithAggregatesFilter<"Book"> | string | null
   totalCopies?: Prisma.IntWithAggregatesFilter<"Book"> | number
   availableCopies?: Prisma.IntWithAggregatesFilter<"Book"> | number
+  genre?: Prisma.StringWithAggregatesFilter<"Book"> | string
 }
 
 export type BookCreateInput = {
@@ -348,6 +360,7 @@ export type BookCreateInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   borrowings?: Prisma.BorrowingCreateNestedManyWithoutBookInput
   favorites?: Prisma.FavoriteCreateNestedManyWithoutBookInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutBookInput
@@ -364,6 +377,7 @@ export type BookUncheckedCreateInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   borrowings?: Prisma.BorrowingUncheckedCreateNestedManyWithoutBookInput
   favorites?: Prisma.FavoriteUncheckedCreateNestedManyWithoutBookInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutBookInput
@@ -379,6 +393,7 @@ export type BookUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   borrowings?: Prisma.BorrowingUpdateManyWithoutBookNestedInput
   favorites?: Prisma.FavoriteUpdateManyWithoutBookNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutBookNestedInput
@@ -395,6 +410,7 @@ export type BookUncheckedUpdateInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   borrowings?: Prisma.BorrowingUncheckedUpdateManyWithoutBookNestedInput
   favorites?: Prisma.FavoriteUncheckedUpdateManyWithoutBookNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutBookNestedInput
@@ -411,6 +427,7 @@ export type BookCreateManyInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
 }
 
 export type BookUpdateManyMutationInput = {
@@ -423,6 +440,7 @@ export type BookUpdateManyMutationInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type BookUncheckedUpdateManyInput = {
@@ -436,6 +454,7 @@ export type BookUncheckedUpdateManyInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type BookCountOrderByAggregateInput = {
@@ -449,6 +468,7 @@ export type BookCountOrderByAggregateInput = {
   description?: Prisma.SortOrder
   totalCopies?: Prisma.SortOrder
   availableCopies?: Prisma.SortOrder
+  genre?: Prisma.SortOrder
 }
 
 export type BookAvgOrderByAggregateInput = {
@@ -468,6 +488,7 @@ export type BookMaxOrderByAggregateInput = {
   description?: Prisma.SortOrder
   totalCopies?: Prisma.SortOrder
   availableCopies?: Prisma.SortOrder
+  genre?: Prisma.SortOrder
 }
 
 export type BookMinOrderByAggregateInput = {
@@ -481,6 +502,7 @@ export type BookMinOrderByAggregateInput = {
   description?: Prisma.SortOrder
   totalCopies?: Prisma.SortOrder
   availableCopies?: Prisma.SortOrder
+  genre?: Prisma.SortOrder
 }
 
 export type BookSumOrderByAggregateInput = {
@@ -570,6 +592,7 @@ export type BookCreateWithoutFavoritesInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   borrowings?: Prisma.BorrowingCreateNestedManyWithoutBookInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutBookInput
 }
@@ -585,6 +608,7 @@ export type BookUncheckedCreateWithoutFavoritesInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   borrowings?: Prisma.BorrowingUncheckedCreateNestedManyWithoutBookInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutBookInput
 }
@@ -615,6 +639,7 @@ export type BookUpdateWithoutFavoritesInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   borrowings?: Prisma.BorrowingUpdateManyWithoutBookNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutBookNestedInput
 }
@@ -630,6 +655,7 @@ export type BookUncheckedUpdateWithoutFavoritesInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   borrowings?: Prisma.BorrowingUncheckedUpdateManyWithoutBookNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutBookNestedInput
 }
@@ -644,6 +670,7 @@ export type BookCreateWithoutReviewsInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   borrowings?: Prisma.BorrowingCreateNestedManyWithoutBookInput
   favorites?: Prisma.FavoriteCreateNestedManyWithoutBookInput
 }
@@ -659,6 +686,7 @@ export type BookUncheckedCreateWithoutReviewsInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   borrowings?: Prisma.BorrowingUncheckedCreateNestedManyWithoutBookInput
   favorites?: Prisma.FavoriteUncheckedCreateNestedManyWithoutBookInput
 }
@@ -689,6 +717,7 @@ export type BookUpdateWithoutReviewsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   borrowings?: Prisma.BorrowingUpdateManyWithoutBookNestedInput
   favorites?: Prisma.FavoriteUpdateManyWithoutBookNestedInput
 }
@@ -704,6 +733,7 @@ export type BookUncheckedUpdateWithoutReviewsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   borrowings?: Prisma.BorrowingUncheckedUpdateManyWithoutBookNestedInput
   favorites?: Prisma.FavoriteUncheckedUpdateManyWithoutBookNestedInput
 }
@@ -718,6 +748,7 @@ export type BookCreateWithoutBorrowingsInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   favorites?: Prisma.FavoriteCreateNestedManyWithoutBookInput
   reviews?: Prisma.ReviewCreateNestedManyWithoutBookInput
 }
@@ -733,6 +764,7 @@ export type BookUncheckedCreateWithoutBorrowingsInput = {
   description?: string | null
   totalCopies?: number
   availableCopies?: number
+  genre?: string
   favorites?: Prisma.FavoriteUncheckedCreateNestedManyWithoutBookInput
   reviews?: Prisma.ReviewUncheckedCreateNestedManyWithoutBookInput
 }
@@ -763,6 +795,7 @@ export type BookUpdateWithoutBorrowingsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   favorites?: Prisma.FavoriteUpdateManyWithoutBookNestedInput
   reviews?: Prisma.ReviewUpdateManyWithoutBookNestedInput
 }
@@ -778,6 +811,7 @@ export type BookUncheckedUpdateWithoutBorrowingsInput = {
   description?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   totalCopies?: Prisma.IntFieldUpdateOperationsInput | number
   availableCopies?: Prisma.IntFieldUpdateOperationsInput | number
+  genre?: Prisma.StringFieldUpdateOperationsInput | string
   favorites?: Prisma.FavoriteUncheckedUpdateManyWithoutBookNestedInput
   reviews?: Prisma.ReviewUncheckedUpdateManyWithoutBookNestedInput
 }
@@ -842,6 +876,7 @@ export type BookSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   description?: boolean
   totalCopies?: boolean
   availableCopies?: boolean
+  genre?: boolean
   borrowings?: boolean | Prisma.Book$borrowingsArgs<ExtArgs>
   favorites?: boolean | Prisma.Book$favoritesArgs<ExtArgs>
   reviews?: boolean | Prisma.Book$reviewsArgs<ExtArgs>
@@ -859,6 +894,7 @@ export type BookSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   description?: boolean
   totalCopies?: boolean
   availableCopies?: boolean
+  genre?: boolean
 }, ExtArgs["result"]["book"]>
 
 export type BookSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -872,6 +908,7 @@ export type BookSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   description?: boolean
   totalCopies?: boolean
   availableCopies?: boolean
+  genre?: boolean
 }, ExtArgs["result"]["book"]>
 
 export type BookSelectScalar = {
@@ -885,9 +922,10 @@ export type BookSelectScalar = {
   description?: boolean
   totalCopies?: boolean
   availableCopies?: boolean
+  genre?: boolean
 }
 
-export type BookOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "autor" | "isbn" | "available" | "createdAt" | "isActive" | "description" | "totalCopies" | "availableCopies", ExtArgs["result"]["book"]>
+export type BookOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "autor" | "isbn" | "available" | "createdAt" | "isActive" | "description" | "totalCopies" | "availableCopies" | "genre", ExtArgs["result"]["book"]>
 export type BookInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   borrowings?: boolean | Prisma.Book$borrowingsArgs<ExtArgs>
   favorites?: boolean | Prisma.Book$favoritesArgs<ExtArgs>
@@ -915,6 +953,7 @@ export type $BookPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     description: string | null
     totalCopies: number
     availableCopies: number
+    genre: string
   }, ExtArgs["result"]["book"]>
   composites: {}
 }
@@ -1351,6 +1390,7 @@ export interface BookFieldRefs {
   readonly description: Prisma.FieldRef<"Book", 'String'>
   readonly totalCopies: Prisma.FieldRef<"Book", 'Int'>
   readonly availableCopies: Prisma.FieldRef<"Book", 'Int'>
+  readonly genre: Prisma.FieldRef<"Book", 'String'>
 }
     
 

@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Book: 'Book',
+  Genre: 'Genre',
   User: 'User',
   Favorite: 'Favorite',
   Review: 'Review',
@@ -84,10 +85,20 @@ export const BookScalarFieldEnum = {
   isActive: 'isActive',
   description: 'description',
   totalCopies: 'totalCopies',
-  availableCopies: 'availableCopies'
+  availableCopies: 'availableCopies',
+  genre: 'genre'
 } as const
 
 export type BookScalarFieldEnum = (typeof BookScalarFieldEnum)[keyof typeof BookScalarFieldEnum]
+
+
+export const GenreScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  createdAt: 'createdAt'
+} as const
+
+export type GenreScalarFieldEnum = (typeof GenreScalarFieldEnum)[keyof typeof GenreScalarFieldEnum]
 
 
 export const UserScalarFieldEnum = {
@@ -130,7 +141,9 @@ export const BorrowingScalarFieldEnum = {
   userId: 'userId',
   bookId: 'bookId',
   borrowedAt: 'borrowedAt',
-  returnedAt: 'returnedAt'
+  returnedAt: 'returnedAt',
+  dueDate: 'dueDate',
+  renewalCount: 'renewalCount'
 } as const
 
 export type BorrowingScalarFieldEnum = (typeof BorrowingScalarFieldEnum)[keyof typeof BorrowingScalarFieldEnum]

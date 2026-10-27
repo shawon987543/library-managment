@@ -45,6 +45,11 @@ export { Prisma }
  */
 export type Book = Prisma.BookModel
 /**
+ * Model Genre
+ * 
+ */
+export type Genre = Prisma.GenreModel
+/**
  * Model User
  * 
  */

@@ -30,12 +30,14 @@ export type BorrowingAvgAggregateOutputType = {
   id: number | null
   userId: number | null
   bookId: number | null
+  renewalCount: number | null
 }
 
 export type BorrowingSumAggregateOutputType = {
   id: number | null
   userId: number | null
   bookId: number | null
+  renewalCount: number | null
 }
 
 export type BorrowingMinAggregateOutputType = {
@@ -44,6 +46,8 @@ export type BorrowingMinAggregateOutputType = {
   bookId: number | null
   borrowedAt: Date | null
   returnedAt: Date | null
+  dueDate: Date | null
+  renewalCount: number | null
 }
 
 export type BorrowingMaxAggregateOutputType = {
@@ -52,6 +56,8 @@ export type BorrowingMaxAggregateOutputType = {
   bookId: number | null
   borrowedAt: Date | null
   returnedAt: Date | null
+  dueDate: Date | null
+  renewalCount: number | null
 }
 
 export type BorrowingCountAggregateOutputType = {
@@ -60,6 +66,8 @@ export type BorrowingCountAggregateOutputType = {
   bookId: number
   borrowedAt: number
   returnedAt: number
+  dueDate: number
+  renewalCount: number
   _all: number
 }
 
@@ -68,12 +76,14 @@ export type BorrowingAvgAggregateInputType = {
   id?: true
   userId?: true
   bookId?: true
+  renewalCount?: true
 }
 
 export type BorrowingSumAggregateInputType = {
   id?: true
   userId?: true
   bookId?: true
+  renewalCount?: true
 }
 
 export type BorrowingMinAggregateInputType = {
@@ -82,6 +92,8 @@ export type BorrowingMinAggregateInputType = {
   bookId?: true
   borrowedAt?: true
   returnedAt?: true
+  dueDate?: true
+  renewalCount?: true
 }
 
 export type BorrowingMaxAggregateInputType = {
@@ -90,6 +102,8 @@ export type BorrowingMaxAggregateInputType = {
   bookId?: true
   borrowedAt?: true
   returnedAt?: true
+  dueDate?: true
+  renewalCount?: true
 }
 
 export type BorrowingCountAggregateInputType = {
@@ -98,6 +112,8 @@ export type BorrowingCountAggregateInputType = {
   bookId?: true
   borrowedAt?: true
   returnedAt?: true
+  dueDate?: true
+  renewalCount?: true
   _all?: true
 }
 
@@ -193,6 +209,8 @@ export type BorrowingGroupByOutputType = {
   bookId: number
   borrowedAt: Date
   returnedAt: Date | null
+  dueDate: Date | null
+  renewalCount: number
   _count: BorrowingCountAggregateOutputType | null
   _avg: BorrowingAvgAggregateOutputType | null
   _sum: BorrowingSumAggregateOutputType | null
@@ -224,6 +242,8 @@ export type BorrowingWhereInput = {
   bookId?: Prisma.IntFilter<"Borrowing"> | number
   borrowedAt?: Prisma.DateTimeFilter<"Borrowing"> | Date | string
   returnedAt?: Prisma.DateTimeNullableFilter<"Borrowing"> | Date | string | null
+  dueDate?: Prisma.DateTimeNullableFilter<"Borrowing"> | Date | string | null
+  renewalCount?: Prisma.IntFilter<"Borrowing"> | number
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   book?: Prisma.XOR<Prisma.BookScalarRelationFilter, Prisma.BookWhereInput>
 }
@@ -234,6 +254,8 @@ export type BorrowingOrderByWithRelationInput = {
   bookId?: Prisma.SortOrder
   borrowedAt?: Prisma.SortOrder
   returnedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
   book?: Prisma.BookOrderByWithRelationInput
 }
@@ -247,6 +269,8 @@ export type BorrowingWhereUniqueInput = Prisma.AtLeast<{
   bookId?: Prisma.IntFilter<"Borrowing"> | number
   borrowedAt?: Prisma.DateTimeFilter<"Borrowing"> | Date | string
   returnedAt?: Prisma.DateTimeNullableFilter<"Borrowing"> | Date | string | null
+  dueDate?: Prisma.DateTimeNullableFilter<"Borrowing"> | Date | string | null
+  renewalCount?: Prisma.IntFilter<"Borrowing"> | number
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   book?: Prisma.XOR<Prisma.BookScalarRelationFilter, Prisma.BookWhereInput>
 }, "id">
@@ -257,6 +281,8 @@ export type BorrowingOrderByWithAggregationInput = {
   bookId?: Prisma.SortOrder
   borrowedAt?: Prisma.SortOrder
   returnedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  dueDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
   _count?: Prisma.BorrowingCountOrderByAggregateInput
   _avg?: Prisma.BorrowingAvgOrderByAggregateInput
   _max?: Prisma.BorrowingMaxOrderByAggregateInput
@@ -273,11 +299,15 @@ export type BorrowingScalarWhereWithAggregatesInput = {
   bookId?: Prisma.IntWithAggregatesFilter<"Borrowing"> | number
   borrowedAt?: Prisma.DateTimeWithAggregatesFilter<"Borrowing"> | Date | string
   returnedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Borrowing"> | Date | string | null
+  dueDate?: Prisma.DateTimeNullableWithAggregatesFilter<"Borrowing"> | Date | string | null
+  renewalCount?: Prisma.IntWithAggregatesFilter<"Borrowing"> | number
 }
 
 export type BorrowingCreateInput = {
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
   user: Prisma.UserCreateNestedOneWithoutBorrowingsInput
   book: Prisma.BookCreateNestedOneWithoutBorrowingsInput
 }
@@ -288,11 +318,15 @@ export type BorrowingUncheckedCreateInput = {
   bookId: number
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
 }
 
 export type BorrowingUpdateInput = {
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.UserUpdateOneRequiredWithoutBorrowingsNestedInput
   book?: Prisma.BookUpdateOneRequiredWithoutBorrowingsNestedInput
 }
@@ -303,6 +337,8 @@ export type BorrowingUncheckedUpdateInput = {
   bookId?: Prisma.IntFieldUpdateOperationsInput | number
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type BorrowingCreateManyInput = {
@@ -311,11 +347,15 @@ export type BorrowingCreateManyInput = {
   bookId: number
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
 }
 
 export type BorrowingUpdateManyMutationInput = {
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type BorrowingUncheckedUpdateManyInput = {
@@ -324,6 +364,8 @@ export type BorrowingUncheckedUpdateManyInput = {
   bookId?: Prisma.IntFieldUpdateOperationsInput | number
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type BorrowingListRelationFilter = {
@@ -342,12 +384,15 @@ export type BorrowingCountOrderByAggregateInput = {
   bookId?: Prisma.SortOrder
   borrowedAt?: Prisma.SortOrder
   returnedAt?: Prisma.SortOrder
+  dueDate?: Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
 }
 
 export type BorrowingAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   bookId?: Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
 }
 
 export type BorrowingMaxOrderByAggregateInput = {
@@ -356,6 +401,8 @@ export type BorrowingMaxOrderByAggregateInput = {
   bookId?: Prisma.SortOrder
   borrowedAt?: Prisma.SortOrder
   returnedAt?: Prisma.SortOrder
+  dueDate?: Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
 }
 
 export type BorrowingMinOrderByAggregateInput = {
@@ -364,12 +411,15 @@ export type BorrowingMinOrderByAggregateInput = {
   bookId?: Prisma.SortOrder
   borrowedAt?: Prisma.SortOrder
   returnedAt?: Prisma.SortOrder
+  dueDate?: Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
 }
 
 export type BorrowingSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   userId?: Prisma.SortOrder
   bookId?: Prisma.SortOrder
+  renewalCount?: Prisma.SortOrder
 }
 
 export type BorrowingCreateNestedManyWithoutBookInput = {
@@ -463,6 +513,8 @@ export type NullableDateTimeFieldUpdateOperationsInput = {
 export type BorrowingCreateWithoutBookInput = {
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
   user: Prisma.UserCreateNestedOneWithoutBorrowingsInput
 }
 
@@ -471,6 +523,8 @@ export type BorrowingUncheckedCreateWithoutBookInput = {
   userId: number
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
 }
 
 export type BorrowingCreateOrConnectWithoutBookInput = {
@@ -508,11 +562,15 @@ export type BorrowingScalarWhereInput = {
   bookId?: Prisma.IntFilter<"Borrowing"> | number
   borrowedAt?: Prisma.DateTimeFilter<"Borrowing"> | Date | string
   returnedAt?: Prisma.DateTimeNullableFilter<"Borrowing"> | Date | string | null
+  dueDate?: Prisma.DateTimeNullableFilter<"Borrowing"> | Date | string | null
+  renewalCount?: Prisma.IntFilter<"Borrowing"> | number
 }
 
 export type BorrowingCreateWithoutUserInput = {
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
   book: Prisma.BookCreateNestedOneWithoutBorrowingsInput
 }
 
@@ -521,6 +579,8 @@ export type BorrowingUncheckedCreateWithoutUserInput = {
   bookId: number
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
 }
 
 export type BorrowingCreateOrConnectWithoutUserInput = {
@@ -554,11 +614,15 @@ export type BorrowingCreateManyBookInput = {
   userId: number
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
 }
 
 export type BorrowingUpdateWithoutBookInput = {
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
   user?: Prisma.UserUpdateOneRequiredWithoutBorrowingsNestedInput
 }
 
@@ -567,6 +631,8 @@ export type BorrowingUncheckedUpdateWithoutBookInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type BorrowingUncheckedUpdateManyWithoutBookInput = {
@@ -574,6 +640,8 @@ export type BorrowingUncheckedUpdateManyWithoutBookInput = {
   userId?: Prisma.IntFieldUpdateOperationsInput | number
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type BorrowingCreateManyUserInput = {
@@ -581,11 +649,15 @@ export type BorrowingCreateManyUserInput = {
   bookId: number
   borrowedAt?: Date | string
   returnedAt?: Date | string | null
+  dueDate?: Date | string | null
+  renewalCount?: number
 }
 
 export type BorrowingUpdateWithoutUserInput = {
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
   book?: Prisma.BookUpdateOneRequiredWithoutBorrowingsNestedInput
 }
 
@@ -594,6 +666,8 @@ export type BorrowingUncheckedUpdateWithoutUserInput = {
   bookId?: Prisma.IntFieldUpdateOperationsInput | number
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 export type BorrowingUncheckedUpdateManyWithoutUserInput = {
@@ -601,6 +675,8 @@ export type BorrowingUncheckedUpdateManyWithoutUserInput = {
   bookId?: Prisma.IntFieldUpdateOperationsInput | number
   borrowedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   returnedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  dueDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalCount?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 
@@ -611,6 +687,8 @@ export type BorrowingSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   bookId?: boolean
   borrowedAt?: boolean
   returnedAt?: boolean
+  dueDate?: boolean
+  renewalCount?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   book?: boolean | Prisma.BookDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["borrowing"]>
@@ -621,6 +699,8 @@ export type BorrowingSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   bookId?: boolean
   borrowedAt?: boolean
   returnedAt?: boolean
+  dueDate?: boolean
+  renewalCount?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   book?: boolean | Prisma.BookDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["borrowing"]>
@@ -631,6 +711,8 @@ export type BorrowingSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   bookId?: boolean
   borrowedAt?: boolean
   returnedAt?: boolean
+  dueDate?: boolean
+  renewalCount?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   book?: boolean | Prisma.BookDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["borrowing"]>
@@ -641,9 +723,11 @@ export type BorrowingSelectScalar = {
   bookId?: boolean
   borrowedAt?: boolean
   returnedAt?: boolean
+  dueDate?: boolean
+  renewalCount?: boolean
 }
 
-export type BorrowingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "bookId" | "borrowedAt" | "returnedAt", ExtArgs["result"]["borrowing"]>
+export type BorrowingOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "userId" | "bookId" | "borrowedAt" | "returnedAt" | "dueDate" | "renewalCount", ExtArgs["result"]["borrowing"]>
 export type BorrowingInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   book?: boolean | Prisma.BookDefaultArgs<ExtArgs>
@@ -669,6 +753,8 @@ export type $BorrowingPayload<ExtArgs extends runtime.Types.Extensions.InternalA
     bookId: number
     borrowedAt: Date
     returnedAt: Date | null
+    dueDate: Date | null
+    renewalCount: number
   }, ExtArgs["result"]["borrowing"]>
   composites: {}
 }
@@ -1099,6 +1185,8 @@ export interface BorrowingFieldRefs {
   readonly bookId: Prisma.FieldRef<"Borrowing", 'Int'>
   readonly borrowedAt: Prisma.FieldRef<"Borrowing", 'DateTime'>
   readonly returnedAt: Prisma.FieldRef<"Borrowing", 'DateTime'>
+  readonly dueDate: Prisma.FieldRef<"Borrowing", 'DateTime'>
+  readonly renewalCount: Prisma.FieldRef<"Borrowing", 'Int'>
 }
     
 

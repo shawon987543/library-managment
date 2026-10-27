@@ -16,6 +16,8 @@ type Book = {
   available: boolean;
   isActive: boolean;
   genre: string;
+  totalCopies: number;
+  availableCopies: number;
 };
 
 type TokenPayload = {
@@ -39,8 +41,30 @@ const emptyForm: BookForm = {
   description: '',
 };
 
+const initialGenres = [
+  'Programming',
+  'Technology',
+  'Science',
+  'Fiction',
+  'Fantasy',
+  'History',
+  'Education',
+  'Mystery',
+  'Biography',
+  'Business',
+  'Other',
+];
+
 export default function AdminPage() {
   const router = useRouter();
+
+  // Track which book descriptions are expanded.
+  const [expandedDescriptions, setExpandedDescriptions] = useState<number[]>([]);
+
+  const [showGenreForm, setShowGenreForm] = useState(false);
+  const [newGenre, setNewGenre] = useState('');
+  const [savingGenre, setSavingGenre] = useState(false);
+  const [genres, setGenres] = useState<string[]>(initialGenres);
 
   const [authorized, setAuthorized] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,6 +74,17 @@ export default function AdminPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [selectedGenre, setSelectedGenre] = useState('All');
+
+  // Filter books by genre.
+  const filteredBooks =
+    selectedGenre === 'All'
+      ? books
+      : books.filter(
+          (book) =>
+            (book.genre || 'Other').toLowerCase() ===
+            selectedGenre.toLowerCase(),
+        );
 
   const handleUnauthorized = useCallback(() => {
     sessionStorage.removeItem('access_token');
@@ -58,9 +93,43 @@ export default function AdminPage() {
   }, [router]);
 
   const loadBooks = useCallback(async () => {
-    const response = await api.get<Book[]>('/books');
-    setBooks(response.data);
-  }, []);
+  const response = await api.get<Book[]>('/books');
+
+  setBooks(
+    response.data.map((book) => ({
+      ...book,
+      totalCopies: Number(book.totalCopies ?? 0),
+      availableCopies: Number(
+        book.availableCopies ?? (book.available ? 1 : 0),
+      ),
+    })),
+  );
+}, []);
+
+// Automatically refresh book counts every 3 seconds.
+useEffect(() => {
+  if (!authorized) return;
+
+  const refresh = () => {
+    if (document.visibilityState === 'visible') {
+      void loadBooks().catch((error) => {
+        console.error('Could not refresh book counts:', error);
+      });
+    }
+  };
+
+  const intervalId = window.setInterval(refresh, 3000);
+
+  // Refresh immediately when returning to the admin tab.
+  document.addEventListener('visibilitychange', refresh);
+  window.addEventListener('focus', refresh);
+
+  return () => {
+    window.clearInterval(intervalId);
+    document.removeEventListener('visibilitychange', refresh);
+    window.removeEventListener('focus', refresh);
+  };
+}, [authorized, loadBooks]);
 
   // Check authentication and administrator role.
   useEffect(() => {
@@ -90,8 +159,8 @@ export default function AdminPage() {
           atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, '=')),
         ) as TokenPayload;
 
-        if (payload.role !== 'ADMIN'){
-          router.replace('/');
+        if (payload.exp && payload.exp * 1000 <= Date.now()) {
+          handleUnauthorized();
           return;
         }
 
@@ -291,6 +360,11 @@ export default function AdminPage() {
         setForm(emptyForm);
       }
 
+      // Remove the deleted book from expanded descriptions.
+      setExpandedDescriptions((current) =>
+        current.filter((id) => id !== book.id),
+      );
+
       await loadBooks();
     } catch (err: unknown) {
       if (
@@ -325,6 +399,164 @@ export default function AdminPage() {
     }
   }
 
+  // Add a genre.
+  async function handleAddGenre(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const name = newGenre.trim();
+
+    if (!name) {
+      setError('Please enter a genre name.');
+      return;
+    }
+
+    if (name.length < 2 || name.length > 60) {
+      setError('Genre name must be between 2 and 60 characters.');
+      return;
+    }
+
+    const existingGenre = genres.find(
+      (genre) => genre.toLowerCase() === name.toLowerCase(),
+    );
+
+    if (existingGenre) {
+      setError(`The genre "${existingGenre}" already exists.`);
+      return;
+    }
+
+    setError('');
+    setSuccess('');
+    setSavingGenre(true);
+
+    try {
+      await api.post('/genres', { name });
+
+      setGenres((currentGenres) =>
+        [...currentGenres, name].sort((a, b) => a.localeCompare(b)),
+      );
+
+      setSelectedGenre(name);
+      setForm((currentForm) => ({
+        ...currentForm,
+        genre: name,
+      }));
+      setNewGenre('');
+      setShowGenreForm(false);
+      setSuccess(`Genre "${name}" added successfully.`);
+    } catch (err: unknown) {
+      if (
+        err !== null &&
+        typeof err === 'object' &&
+        'response' in err
+      ) {
+        const response = (
+          err as {
+            response?: {
+              status?: number;
+              data?: { message?: string | string[] };
+            };
+          }
+        ).response;
+
+        if (response?.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        const message = response?.data?.message;
+
+        setError(
+          Array.isArray(message)
+            ? message.join(', ')
+            : message || 'Could not add genre.',
+        );
+      } else {
+        setError('Could not connect to the server.');
+      }
+    } finally {
+      setSavingGenre(false);
+    }
+  }
+
+  // Delete a genre.
+  async function handleDeleteGenre() {
+    if (selectedGenre === 'All') {
+      setError('Please select a genre to delete.');
+      return;
+    }
+
+    const genreToDelete = selectedGenre;
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the "${genreToDelete}" genre?`,
+    );
+
+    if (!confirmed) return;
+
+    setError('');
+    setSuccess('');
+    setSavingGenre(true);
+
+    try {
+      await api.delete(
+        `/genres/${encodeURIComponent(genreToDelete)}`,
+      );
+
+      setGenres((currentGenres) =>
+        currentGenres.filter(
+          (genre) =>
+            genre.toLowerCase() !== genreToDelete.toLowerCase(),
+        ),
+      );
+
+      setSelectedGenre('All');
+
+      setForm((currentForm) => ({
+        ...currentForm,
+        genre:
+          currentForm.genre.toLowerCase() ===
+          genreToDelete.toLowerCase()
+            ? 'Other'
+            : currentForm.genre,
+      }));
+
+      setSuccess(`Genre "${genreToDelete}" deleted successfully.`);
+    } catch (err: unknown) {
+      if (
+        err !== null &&
+        typeof err === 'object' &&
+        'response' in err
+      ) {
+        const response = (
+          err as {
+            response?: {
+              status?: number;
+              data?: { message?: string | string[] };
+            };
+          }
+        ).response;
+
+        if (response?.status === 401) {
+          handleUnauthorized();
+          return;
+        }
+
+        const message = response?.data?.message;
+
+        setError(
+          Array.isArray(message)
+            ? message.join(', ')
+            : message ||
+                'Could not delete genre. Check whether books are using it.',
+        );
+      } else {
+        setError('Could not connect to the server.');
+      }
+    } finally {
+      setSavingGenre(false);
+    }
+  }
+
   function logout() {
     sessionStorage.removeItem('access_token');
     sessionStorage.removeItem('refresh_token');
@@ -341,6 +573,15 @@ export default function AdminPage() {
     }
   }
 
+  // Toggle a description between shortened and full text.
+  function toggleDescription(bookId: number) {
+    setExpandedDescriptions((current) =>
+      current.includes(bookId)
+        ? current.filter((id) => id !== bookId)
+        : [...current, bookId],
+    );
+  }
+
   if (loading) {
     return (
       <main className="dashboard-page flex min-h-screen items-center justify-center px-4">
@@ -355,17 +596,13 @@ export default function AdminPage() {
     return null;
   }
 
-  const availableCount = books.filter(
-    (book) => book.isActive && book.available,
-  ).length;
+const availableCount = books.filter(
+  (book) => book.isActive && book.available,
+).length;
 
-  const borrowedCount = books.filter(
-    (book) => book.isActive && !book.available,
-  ).length;
-
-  const deactivatedCount = books.filter(
-    (book) => !book.isActive,
-  ).length;
+const borrowedCount = books.filter(
+  (book) => book.isActive && !book.available,
+).length;
 
   const inputClass =
     'w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-gray-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200';
@@ -414,18 +651,18 @@ export default function AdminPage() {
             <button
               type="button"
               onClick={() => router.push('/')}
-              className="dashboard-secondary-action rounded-lg  border px-5 py-3 font-black"
+              className="dashboard-secondary-action rounded-lg border px-5 py-3 font-semibold"
             >
               Main dashboard
             </button>
-          <div className= "flex flex-wrap items-center gap-3">
+
             <Link
-            href= "/dashboard"
-            className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
+              href="/dashboard"
+              className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
             >
               Dashboard
             </Link>
-          </div>
+
             <button
               type="button"
               onClick={logout}
@@ -455,12 +692,10 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Statistics: original three-column alignment */}
+        {/* Statistics */}
         <section className="mb-8 grid gap-4 sm:grid-cols-3">
           <StatCard label="Total books" value={books.length} />
-
           <StatCard label="Available books" value={availableCount} />
-
           <StatCard
             label="Borrowed / unavailable"
             value={borrowedCount}
@@ -483,7 +718,6 @@ export default function AdminPage() {
             </p>
           </div>
 
-          {/* Original two-column form alignment */}
           <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
             <div>
               <label
@@ -545,35 +779,30 @@ export default function AdminPage() {
                 className={inputClass}
               />
             </div>
-                <div>
-                  <label
-                  htmlFor= "genre"
-                  className="mb-2 block font-semibold text-gray-800"
-                  >
-                    Book genre
-                  </label>
 
-                  <select
-                  id="genre"
-                  value={form.genre}
-                  onChange={(e) =>
-                    setForm({ ...form, genre: e.target.value })
-                  }
-                  className={inputClass}
-                  >
-                    <option value="Other">Other</option>
-                    <option value="Programming">Programming</option>
-                    <option value="Technology">Technology</option>
-                    <option value="Science">Science</option>
-                    <option value="Fiction">Fiction</option>
-                    <option value="Fantasy">Fantasy</option>
-                    <option value="History">Other</option>
-                    <option value="Education">Education</option>
-                    <option value="Mystery">Mystery</option>
-                    <option value="Biography">Biography</option>
-                    <option value="Business">Business</option>
-                  </select>
-                </div>
+            <div>
+              <label
+                htmlFor="genre"
+                className="mb-2 block font-semibold text-gray-800"
+              >
+                Book genre
+              </label>
+
+              <select
+                id="genre"
+                value={form.genre}
+                onChange={(e) =>
+                  setForm({ ...form, genre: e.target.value })
+                }
+                className={inputClass}
+              >
+                {genres.map((genre) => (
+                  <option key={genre} value={genre}>
+                    {genre}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <div className="md:col-span-2">
               <label
@@ -634,9 +863,7 @@ export default function AdminPage() {
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="dashboard-eyebrow">Your library</p>
-
               <h2 className="text-xl font-bold">Books collection</h2>
-
               <p className="mt-1 text-sm text-gray-500">
                 Manage book details and availability.
               </p>
@@ -644,7 +871,8 @@ export default function AdminPage() {
 
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">
-                {books.length} {books.length === 1 ? 'book' : 'books'}
+                {filteredBooks.length}{' '}
+                {filteredBooks.length === 1 ? 'book' : 'books'}
               </span>
 
               <button
@@ -657,6 +885,103 @@ export default function AdminPage() {
             </div>
           </div>
 
+          {/* Genre filter, Add Genre and Delete Genre */}
+          <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <label
+                htmlFor="admin-genre-filter"
+                className="font-semibold text-gray-700"
+              >
+                Filter by genre
+              </label>
+
+              <select
+                id="admin-genre-filter"
+                value={selectedGenre}
+                onChange={(event) => setSelectedGenre(event.target.value)}
+                className="min-w-48 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="All">All Genres</option>
+
+                {genres.map((genre) => (
+                  <option key={genre} value={genre}>
+                    {genre}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setError('');
+                  setShowGenreForm((current) => !current);
+                }}
+                className="rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white transition hover:bg-blue-700"
+              >
+                {showGenreForm ? 'Cancel' : '+ Add Genre'}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => void handleDeleteGenre()}
+                disabled={selectedGenre === 'All' || savingGenre}
+                className="rounded-lg bg-red-600 px-4 py-2.5 font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {savingGenre ? 'Processing...' : 'Delete Genre'}
+              </button>
+
+              {selectedGenre !== 'All' && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedGenre('All')}
+                  className="text-sm font-semibold text-blue-700 hover:text-blue-900"
+                >
+                  Clear filter
+                </button>
+              )}
+
+              <span className="text-sm text-gray-500">
+                Showing {filteredBooks.length} of {books.length} books
+              </span>
+            </div>
+
+            {showGenreForm && (
+              <form
+                onSubmit={handleAddGenre}
+                className="mt-4 flex flex-col gap-3 rounded-lg border border-blue-200 bg-white p-4 sm:flex-row sm:items-end"
+              >
+                <div className="flex-1">
+                  <label
+                    htmlFor="new-genre"
+                    className="mb-2 block font-semibold text-gray-800"
+                  >
+                    New genre name
+                  </label>
+
+                  <input
+                    id="new-genre"
+                    type="text"
+                    required
+                    minLength={2}
+                    maxLength={60}
+                    value={newGenre}
+                    onChange={(event) => setNewGenre(event.target.value)}
+                    placeholder="e.g. Artificial Intelligence"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-blue-600 focus:ring-2 focus:ring-blue-200"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={savingGenre}
+                  className="rounded-lg bg-green-600 px-5 py-3 font-semibold text-white hover:bg-green-700 disabled:opacity-60"
+                >
+                  {savingGenre ? 'Saving...' : 'Save Genre'}
+                </button>
+              </form>
+            )}
+          </div>
+
           {books.length === 0 ? (
             <div className="dashboard-empty-state px-6 py-12 text-center">
               <p className="font-semibold text-gray-700">
@@ -667,9 +992,27 @@ export default function AdminPage() {
                 Add your first book using the form above.
               </p>
             </div>
+          ) : filteredBooks.length === 0 ? (
+            <div className="dashboard-empty-state px-6 py-12 text-center">
+              <p className="font-semibold text-gray-700">
+                No books found in {selectedGenre}.
+              </p>
+
+              <p className="mt-1 text-sm text-gray-500">
+                Choose another genre or clear the filter to see all books.
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setSelectedGenre('All')}
+                className="dashboard-primary-action mt-4 rounded-lg px-4 py-2 font-semibold text-white"
+              >
+                Show all books
+              </button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[1000px] border-collapse text-left">
+              <table className="w-full min-w-250 border-collapse text-left">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <th className="px-4 py-3 font-semibold text-gray-700">
@@ -687,9 +1030,10 @@ export default function AdminPage() {
                     <th className="px-4 py-3 font-semibold text-gray-700">
                       ISBN
                     </th>
+
                     <th className="px-4 py-3 font-semibold text-gray-700">
                       Genre
-                      </th>
+                    </th>
 
                     <th className="px-4 py-3 font-semibold text-gray-700">
                       Description
@@ -706,91 +1050,114 @@ export default function AdminPage() {
                 </thead>
 
                 <tbody>
-                  {books.map((book) => (
-                    <tr
-                      key={book.id}
-                      className="border-b border-gray-100 hover:bg-gray-50"
-                    >
-                      <td className="px-4 py-4 text-gray-700">
-                        {book.id}
-                      </td>
+                  {filteredBooks.map((book) => {
+                    const description = book.description?.trim() || '';
+                    const isExpanded = expandedDescriptions.includes(book.id);
+                    const isLong = description.length > 100;
 
-                      <td className="px-4 py-4 font-medium text-gray-900">
-                        {book.title}
-                      </td>
+                    return (
+                      <tr
+                        key={book.id}
+                        className="border-b border-gray-100 hover:bg-gray-50"
+                      >
+                        <td className="px-4 py-4 text-gray-700">
+                          {book.id}
+                        </td>
 
-                      <td className="px-4 py-4 text-gray-700">
-                        {book.autor}
-                      </td>
+                        <td className="px-4 py-4 font-medium text-gray-900">
+                          {book.title}
+                        </td>
 
-                      <td className="px-4 py-4 text-gray-700">
-                        {book.isbn}
-                      </td>
+                        <td className="px-4 py-4 text-gray-700">
+                          {book.autor}
+                        </td>
 
-                      <td className="px-4 py-4">
-                        <span className="inline-flex rounded-b-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
-                          {book.genre || 'Other'}
-                        </span>
-                      </td>
+                        <td className="px-4 py-4 text-gray-700">
+                          {book.isbn}
+                        </td>
 
-                      <td className="max-w-xs px-4 py-4">
-                        <p className="whitespace-pre-wrap break-words text-gray-600">
-                          {book.description?.trim() || 'No description'}
-                        </p>
-                      </td>
+                        <td className="px-4 py-4">
+                          <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
+                            {book.genre || 'Other'}
+                          </span>
+                        </td>
 
-                      <td className="px-4 py-4">
-                        <span
-                          className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
-                            !book.isActive
-                              ? 'bg-red-100 text-red-800'
+                        {/* Description: More / Show less */}
+                        <td className="max-w-xs px-4 py-4">
+                          <div className="min-w-48 max-w-sm">
+                            <p className="whitespace-pre-wrap wrap-break-word text-gray-600">
+                              {!description
+                                ? 'No description'
+                                : isExpanded || !isLong
+                                  ? description
+                                  : `${description.slice(0, 100)}...`}
+                            </p>
+
+                            {isLong && (
+                              <button
+                                type="button"
+                                onClick={() => toggleDescription(book.id)}
+                                aria-expanded={isExpanded}
+                                className="mt-2 font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {isExpanded ? 'Show less' : 'More'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-4">
+                          <span
+                            className={`whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold ${
+                              !book.isActive
+                                ? 'bg-red-100 text-red-800'
+                                : book.available
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-orange-100 text-orange-800'
+                            }`}
+                          >
+                            {!book.isActive
+                              ? 'Deactivated'
                               : book.available
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-orange-100 text-orange-800'
-                          }`}
-                        >
-                          {!book.isActive
-                            ? 'Deactivated'
-                            : book.available
-                              ? 'Available'
-                              : 'Borrowed'}
-                        </span>
-                      </td>
+                                ? 'Available'
+                                : 'Borrowed'}
+                          </span>
+                        </td>
 
-                      {/* Original horizontal button alignment */}
-                     <td className="px-4 py-4">
-                    <div className="flex flex-col items-start gap-2">
-                        <button
-                            type="button"
-                            onClick={() => startEdit(book)}
-                            className="w-28 rounded-md bg-amber-100 px-3 py-2 text-center text-sm font-semibold text-amber-800 hover:bg-amber-200"
-                        >
-                            Edit
-                        </button>
+                        <td className="px-4 py-4">
+                          <div className="flex flex-col items-start gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEdit(book)}
+                              className="w-28 rounded-md bg-amber-100 px-3 py-2 text-center text-sm font-semibold text-amber-800 hover:bg-amber-200"
+                            >
+                              Edit
+                            </button>
 
-                        <button
-                            type="button"
-                            onClick={() => void toggleBookStatus(book)}
-                            className={`w-28 rounded-md px-3 py-2 text-center text-sm font-semibold ${
+                            <button
+                              type="button"
+                              onClick={() => void toggleBookStatus(book)}
+                              className={`w-28 rounded-md px-3 py-2 text-center text-sm font-semibold ${
                                 book.isActive
-                                ? 'bg-orange-100 text-orange-800 hover:bg-orange-200'
-                                : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                        >
-                        {book.isActive ? 'Deactivate' : 'Reactivate'}
-                    </button>
+                                  ? 'bg-orange-100 text-orange-800 hover:bg-orange-200'
+                                  : 'bg-green-100 text-green-800 hover:bg-green-200'
+                              }`}
+                            >
+                              {book.isActive ? 'Deactivate' : 'Reactivate'}
+                            </button>
 
-                     <button
-                            type="button"
-                            onClick={() => void deleteBook(book)}
-                            className="w-28 rounded-md bg-red-100 px-3 py-2 text-center text-sm font-semibold text-red-800 hover:bg-red-200"
-                    >
-                        Delete
-                    </button>
-                    </div>
-                    </td>
-                    </tr>
-                  ))}
+                            <button
+                              type="button"
+                              onClick={() => void deleteBook(book)}
+                              className="w-28 rounded-md bg-red-100 px-3 py-2 text-center text-sm font-semibold text-red-800 hover:bg-red-200"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

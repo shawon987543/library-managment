@@ -13,6 +13,7 @@ interface LoginResponse {
 }
 
 export default function LoginPage() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -24,6 +25,7 @@ export default function LoginPage() {
   // Read the registration status in the browser.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setRegistered(params.get('registered') === 'true');
   }, []);
 

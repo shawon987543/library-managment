@@ -12,6 +12,7 @@ interface Book {
   isbn: string;
   available: boolean;
   genre: string;
+  createdAt?: string;
 }
 
 interface FavoriteRecord {
@@ -19,8 +20,14 @@ interface FavoriteRecord {
   book?: Book;
 }
 
+type SortOrder = 'ASC' | 'DESC';
+
 export default function HomePage() {
   const router = useRouter();
+
+  const [selectedGenre, setSelectedGenre] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
 
   const [authenticated, setAuthenticated] = useState(false);
   const [books, setBooks] = useState<Book[]>([]);
@@ -29,6 +36,63 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [favoriteMessage, setFavoriteMessage] = useState('');
+  const [userId, setUserId] = useState<number | null>(null);
+
+  const genres = [
+    'Programming',
+    'Technology',
+    'Science',
+    'Fiction',
+    'Fantasy',
+    'History',
+    'Education',
+    'Mystery',
+    'Biography',
+    'Business',
+    'Other',
+  ];
+
+  // Search by title, author, or ISBN; filter by genre; sort by creation date.
+  const filteredBooks = books
+    .filter((book) => {
+      const query = searchTerm.trim().toLowerCase();
+
+      const matchesSearch =
+        (book.title || '').toLowerCase().includes(query) ||
+        (book.autor || '').toLowerCase().includes(query) ||
+        (book.isbn || '').toLowerCase().includes(query);
+
+      const matchesGenre =
+        selectedGenre === 'All' ||
+        (book.genre || 'Other').toLowerCase() ===
+          selectedGenre.toLowerCase();
+
+      return matchesSearch && matchesGenre;
+    })
+    .sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+
+      return sortOrder === 'ASC' ? dateA - dateB : dateB - dateA;
+    });
+
+  // Read the logged-in user's ID from the access token.
+  useEffect(() => {
+    const token = sessionStorage.getItem('access_token');
+
+    if (token) {
+      try {
+        const payload = JSON.parse(
+          atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')),
+        );
+
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUserId(Number(payload.sub));
+      } catch (error) {
+        console.error('Could not read user ID from token:', error);
+      }
+    }
+  }, []);
 
   // Check authentication before loading dashboard data.
   useEffect(() => {
@@ -78,10 +142,12 @@ export default function HomePage() {
   const fetchFavorites = useCallback(async () => {
     try {
       const response = await api.get<
-        Book[] | FavoriteRecord[] | {
-          favorites?: Book[] | FavoriteRecord[];
-          favoriteBooks?: Book[];
-        }
+        | Book[]
+        | FavoriteRecord[]
+        | {
+            favorites?: Book[] | FavoriteRecord[];
+            favoriteBooks?: Book[];
+          }
       >('/users/me/favorites');
 
       const data = response.data;
@@ -92,12 +158,10 @@ export default function HomePage() {
 
       const ids = records
         .map((item) => {
-          // Explicit Favorite model: each record may contain a related book.
           if ('book' in item && item.book) {
             return item.book.id;
           }
 
-          // If the endpoint returns Book objects directly.
           return item.id;
         })
         .filter((id): id is number => typeof id === 'number');
@@ -116,11 +180,12 @@ export default function HomePage() {
       }
 
       setFavoriteMessage(
-        'Could not load favorites. Please check the favorites API.'
+        'Could not load favorites. Please check the favorites API.',
       );
     }
   }, [handleUnauthorized]);
 
+  // Load books and favorites after authentication.
   useEffect(() => {
     if (authenticated) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -145,7 +210,7 @@ export default function HomePage() {
         await api.delete(`/users/me/favorites/${bookId}`);
 
         setFavoriteIds((previous) =>
-          previous.filter((id) => id !== bookId)
+          previous.filter((id) => id !== bookId),
         );
 
         setFavoriteMessage('Book removed from your favorites.');
@@ -153,7 +218,7 @@ export default function HomePage() {
         await api.post(`/users/me/favorites/${bookId}`);
 
         setFavoriteIds((previous) =>
-          previous.includes(bookId) ? previous : [...previous, bookId]
+          previous.includes(bookId) ? previous : [...previous, bookId],
         );
 
         setFavoriteMessage('Book added to your favorites.');
@@ -172,14 +237,21 @@ export default function HomePage() {
       setFavoriteMessage(
         isFavorite
           ? 'Could not remove this book from favorites.'
-          : 'Could not add this book to favorites.'
+          : 'Could not add this book to favorites.',
       );
     } finally {
       setFavoriteLoadingIds((previous) =>
-        previous.filter((id) => id !== bookId)
+        previous.filter((id) => id !== bookId),
       );
     }
   };
+
+  // Reset search, genre, and sorting.
+  function resetFilters() {
+    setSearchTerm('');
+    setSelectedGenre('All');
+    setSortOrder('DESC');
+  }
 
   // Logout the current user.
   function handleLogout() {
@@ -228,19 +300,32 @@ export default function HomePage() {
               </p>
             </div>
           </div>
-          <Link
-          href= "/dashboard"
-          className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
-          >
-          Dashboard
-          </Link>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg px-5 py-3 font-semibold text-white"
-          >
-            Logout
-          </button>
+
+          <nav className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/dashboard"
+              className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
+            >
+              Dashboard
+            </Link>
+
+            {userId !== null && Number.isFinite(userId) && (
+              <Link
+                href={`/users/${userId}`}
+                className="dashboard-primary-action inline-flex items-center justify-center rounded-lg px-5 py-3 font-semibold text-white"
+              >
+                Profile
+              </Link>
+            )}
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="dashboard-secondary-action rounded-lg border px-5 py-3 font-semibold"
+            >
+              Logout
+            </button>
+          </nav>
         </header>
 
         {/* Book loading error */}
@@ -274,13 +359,15 @@ export default function HomePage() {
               <p className="dashboard-eyebrow">Your library</p>
               <h2 className="text-xl font-bold">Books Collection</h2>
               <p className="mt-1 text-sm text-gray-500">
-                Browse books, save favorites, or select a title to see its details.
+                Search, filter, and sort books, save favorites, or select a
+                title to see its details.
               </p>
             </div>
 
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-blue-100 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">
-                {books.length} {books.length === 1 ? 'book' : 'books'}
+                {filteredBooks.length}{' '}
+                {filteredBooks.length === 1 ? 'book' : 'books'}
               </span>
 
               <button
@@ -297,6 +384,80 @@ export default function HomePage() {
             </div>
           </div>
 
+          {/* Search, genre filter, and sorting */}
+          <div className="mb-6 flex flex-wrap items-end gap-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <div className="flex min-w-56 flex-1 flex-col gap-2">
+              <label
+                htmlFor="book-search"
+                className="font-semibold text-gray-700"
+              >
+                Search books
+              </label>
+              <input
+                id="book-search"
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Title, author, or ISBN..."
+                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div className="flex min-w-44 flex-col gap-2">
+              <label
+                htmlFor="user-genre-filter"
+                className="font-semibold text-gray-700"
+              >
+                Filter by genre
+              </label>
+              <select
+                id="user-genre-filter"
+                value={selectedGenre}
+                onChange={(event) => setSelectedGenre(event.target.value)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-800"
+              >
+                <option value="All">All Genres</option>
+                {genres.map((genre) => (
+                  <option key={genre} value={genre}>
+                    {genre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex min-w-48 flex-col gap-2">
+              <label
+                htmlFor="book-sort"
+                className="font-semibold text-gray-700"
+              >
+                Sort by date added
+              </label>
+              <select
+                id="book-sort"
+                value={sortOrder}
+                onChange={(event) =>
+                  setSortOrder(event.target.value as SortOrder)
+                }
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-800"
+              >
+                <option value="DESC">Newest first</option>
+                <option value="ASC">Oldest first</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="dashboard-secondary-action rounded-lg border px-4 py-2.5 font-semibold"
+            >
+              Reset filters
+            </button>
+
+            <p className="w-full text-sm text-gray-500">
+              Showing {filteredBooks.length} of {books.length} books
+            </p>
+          </div>
+
           {loading ? (
             <p className="py-10 text-center text-gray-600">
               Loading books...
@@ -309,6 +470,22 @@ export default function HomePage() {
               <p className="mt-1 text-sm text-gray-500">
                 Please check again later.
               </p>
+            </div>
+          ) : filteredBooks.length === 0 ? (
+            <div className="dashboard-empty-state px-6 py-12 text-center">
+              <p className="font-semibold text-gray-700">
+                No books match your search or selected genre.
+              </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Try another keyword or reset your filters.
+              </p>
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="dashboard-primary-action mt-4 rounded-lg px-4 py-2 font-semibold text-white"
+              >
+                Reset filters
+              </button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -340,7 +517,7 @@ export default function HomePage() {
                 </thead>
 
                 <tbody>
-                  {books.map((book) => {
+                  {filteredBooks.map((book) => {
                     const isFavorite = favoriteIds.includes(book.id);
                     const isSaving = favoriteLoadingIds.includes(book.id);
 
@@ -365,11 +542,13 @@ export default function HomePage() {
                         <td className="px-4 py-4 text-gray-700">
                           {book.autor}
                         </td>
+
                         <td className="px-4 py-4">
                           <span className="inline-flex rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">
                             {book.genre || 'Other'}
-                            </span>
+                          </span>
                         </td>
+
                         <td className="px-4 py-4 text-gray-700">
                           {book.isbn}
                         </td>

@@ -29,6 +29,12 @@ model Book {
   genre           String @default("Other")
 }
 
+model Genre {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+}
+
 model User {
   id               Int      @id @default(autoincrement())
   name             String
